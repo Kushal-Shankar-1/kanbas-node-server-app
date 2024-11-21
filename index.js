@@ -50,9 +50,15 @@ app.use(
     resave: false, // Avoid unnecessary session saves
     saveUninitialized: false, // Only create session when needed
     cookie: {
-      secure: false, // Do not require HTTPS for cookies (same as local behavior)
-      sameSite: "lax", // Consistent cookie policy
+      secure: process.env.NODE_ENV === "production", // HTTPS-only cookies in production
+      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax", // Cross-origin cookies in production
+      domain:
+        process.env.NODE_ENV === "production"
+          ? process.env.NODE_SERVER_DOMAIN ||
+            "kanbas-node-server-app-emvj.onrender.com" // Backend domain for production
+          : undefined, // No domain for local development
     },
+    proxy: process.env.NODE_ENV === "production", // Trust reverse proxies in production
   })
 );
 
