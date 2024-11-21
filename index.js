@@ -19,22 +19,34 @@ const app = express();
 const allowedOrigins = [
   "http://localhost:3000", // Local React development
   process.env.NETLIFY_URL ||
-    "https://673fa1d407ba318d2fb2b41b--statuesque-bienenstitch-61f515.netlify.app/", // Netlify deployment
+    "https://673fa1d407ba318d2fb2b41b--statuesque-bienenstitch-61f515.netlify.app", // Netlify deployment
 ];
 
-// Configure CORS to allow credentials and multiple origins
+// Configure CORS
 app.use(
   cors({
-    credentials: true, // Allow cookies to be sent
+    credentials: true, // Allow cookies/auth headers
     origin: (origin, callback) => {
       if (!origin || allowedOrigins.includes(origin)) {
         callback(null, true); // Allow the request
       } else {
+        console.error(`Blocked by CORS: ${origin}`); // Log blocked origins
         callback(new Error("Not allowed by CORS")); // Block other origins
       }
     },
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"], // Allow these methods
+    allowedHeaders: [
+      "Content-Type",
+      "Authorization",
+      "X-Requested-With",
+      "Accept",
+      "Origin",
+    ], // Allow these headers
   })
 );
+
+// Automatically handle OPTIONS requests
+app.options("*", cors());
 
 // Configure body parser to parse JSON bodies
 app.use(bodyParser.json());
