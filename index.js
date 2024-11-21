@@ -1,4 +1,3 @@
-// Kanbas/index.js
 import express from "express";
 import cors from "cors";
 import session from "express-session";
@@ -18,8 +17,8 @@ const app = express();
 // Configure allowed origins
 const allowedOrigins = [
   "http://localhost:3000", // Local React development
-  process.env.NETLIFY_URL ||
-    "https://673fa1d407ba318d2fb2b41b--statuesque-bienenstitch-61f515.netlify.app", // Netlify deployment
+  "https://673fa1d407ba318d2fb2b41b--statuesque-bienenstitch-61f515.netlify.app", // Netlify deployment
+  "https://kanbas-node-server-app-emvj.onrender.com", // Backend URL for cross-origin
 ];
 
 // Configure CORS
@@ -34,18 +33,18 @@ app.use(
         callback(new Error("Not allowed by CORS")); // Block other origins
       }
     },
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"], // Allow these methods
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"], // Allowed methods
     allowedHeaders: [
       "Content-Type",
       "Authorization",
       "X-Requested-With",
       "Accept",
       "Origin",
-    ], // Allow these headers
+    ], // Allowed headers
   })
 );
 
-// Automatically handle OPTIONS requests
+// Automatically handle OPTIONS requests for preflight
 app.options("*", cors());
 
 // Configure body parser to parse JSON bodies
@@ -56,16 +55,15 @@ const sessionOptions = {
   secret: process.env.SESSION_SECRET || "super secret session phrase", // Secret for signing session ID
   resave: false, // Don't save session if unmodified
   saveUninitialized: false, // Don't create session until something stored
+  cookie: {
+    secure: process.env.NODE_ENV === "production", // HTTPS-only cookies in production
+    sameSite: process.env.NODE_ENV === "production" ? "none" : "lax", // Cross-site cookies for production
+  },
 };
 
-// Modify session options for production
-if (process.env.NODE_ENV !== "development") {
-  sessionOptions.proxy = true; // Trust the first proxy
-  sessionOptions.cookie = {
-    sameSite: "none", // Allow cross-site cookies
-    secure: true, // Send cookies over HTTPS only
-    domain: process.env.NODE_SERVER_DOMAIN, // Set to your server's domain
-  };
+// Trust first proxy for secure cookies
+if (process.env.NODE_ENV === "production") {
+  sessionOptions.proxy = true;
 }
 
 app.use(session(sessionOptions));
