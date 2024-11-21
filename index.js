@@ -14,11 +14,10 @@ import EnrollmentRoutes from "./Kanbas/Enrollments/routes.js";
 
 const app = express();
 
-// Configure allowed origins
+// Configure allowed origins (frontend and backend)
 const allowedOrigins = [
   "http://localhost:3000", // Local React development
-  "https://673fa1d407ba318d2fb2b41b--statuesque-bienenstitch-61f515.netlify.app", // Netlify deployment
-  "https://kanbas-node-server-app-emvj.onrender.com", // Backend URL for cross-origin
+  process.env.NETLIFY_URL || "https://your-netlify-site.netlify.app", // Netlify deployment
 ];
 
 // Configure CORS
@@ -34,41 +33,30 @@ app.use(
       }
     },
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"], // Allowed methods
-    allowedHeaders: [
-      "Content-Type",
-      "Authorization",
-      "X-Requested-With",
-      "Accept",
-      "Origin",
-    ], // Allowed headers
+    allowedHeaders: ["Content-Type", "Authorization"], // Minimal headers
   })
 );
 
 // Automatically handle OPTIONS requests for preflight
 app.options("*", cors());
 
-// Configure body parser to parse JSON bodies
+// Body parser to handle JSON payloads
 app.use(bodyParser.json());
 
-// Configure session handling
-const sessionOptions = {
-  secret: process.env.SESSION_SECRET || "super secret session phrase", // Secret for signing session ID
-  resave: false, // Don't save session if unmodified
-  saveUninitialized: false, // Don't create session until something stored
-  cookie: {
-    secure: process.env.NODE_ENV === "production", // HTTPS-only cookies in production
-    sameSite: process.env.NODE_ENV === "production" ? "none" : "lax", // Cross-site cookies for production
-  },
-};
+// Unified session configuration
+app.use(
+  session({
+    secret: process.env.SESSION_SECRET || "super secret session phrase", // Secret for signing session ID
+    resave: false, // Avoid unnecessary session saves
+    saveUninitialized: false, // Only create session when needed
+    cookie: {
+      secure: false, // Do not require HTTPS for cookies (same as local behavior)
+      sameSite: "lax", // Consistent cookie policy
+    },
+  })
+);
 
-// Trust first proxy for secure cookies
-if (process.env.NODE_ENV === "production") {
-  sessionOptions.proxy = true;
-}
-
-app.use(session(sessionOptions));
-
-// Define routes
+// Define API routes
 Lab5(app);
 Hello(app);
 UserRoutes(app);
@@ -80,5 +68,5 @@ EnrollmentRoutes(app);
 // Start the server
 const PORT = process.env.PORT || 4000;
 app.listen(PORT, () => {
-  console.log(`Server is running on http://localhost:${PORT}`);
+  console.log(`Server is running on port ${PORT}`);
 });
