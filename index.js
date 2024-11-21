@@ -18,7 +18,8 @@ const app = express();
 // Configure allowed origins
 const allowedOrigins = [
   "http://localhost:3000", // Local React development
-  process.env.NETLIFY_URL || "https://your-netlify-app.netlify.app", // Netlify deployment
+  process.env.NETLIFY_URL ||
+    "https://673fa1d407ba318d2fb2b41b--statuesque-bienenstitch-61f515.netlify.app/", // Netlify deployment
 ];
 
 // Configure CORS to allow credentials and multiple origins
