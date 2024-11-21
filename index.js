@@ -15,11 +15,23 @@ import EnrollmentRoutes from "./Kanbas/Enrollments/routes.js";
 
 const app = express();
 
-// Configure CORS to allow credentials and restrict origin
+// Configure allowed origins
+const allowedOrigins = [
+  "http://localhost:3000", // Local React development
+  process.env.NETLIFY_URL || "https://your-netlify-app.netlify.app", // Netlify deployment
+];
+
+// Configure CORS to allow credentials and multiple origins
 app.use(
   cors({
     credentials: true, // Allow cookies to be sent
-    origin: process.env.NETLIFY_URL || "http://localhost:3000", // Restrict to React app
+    origin: (origin, callback) => {
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true); // Allow the request
+      } else {
+        callback(new Error("Not allowed by CORS")); // Block other origins
+      }
+    },
   })
 );
 
