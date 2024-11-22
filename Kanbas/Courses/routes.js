@@ -66,7 +66,7 @@ export default function UserRoutes(app) {
       return res.status(404).json({ error: "Course not found" });
     }
 
-    res.status(204).send(); // No Content
+    res.status(200).json(updatedCourse); // No Content
   });
 
   /**

@@ -60,8 +60,18 @@ export default function UserRoutes(app) {
       return;
     }
 
-    currentUser = dao.createUser(req.body);
-    res.status(201).json(currentUser);
+    // Destroy the current session (if any) before proceeding
+    req.session.destroy((err) => {
+      if (err) {
+        console.error("Error clearing session during signup:", err);
+      }
+    });
+
+    // Create the new user
+    const newUser = dao.createUser(req.body);
+
+    // Do not set the session; redirect to Sign In for login
+    res.status(201).json({ message: "Signup successful. Please log in." });
   };
 
   const signin = (req, res) => {
@@ -106,10 +116,15 @@ export default function UserRoutes(app) {
     const newCourse = courseDao.createCourse(req.body);
 
     // Enroll the current user in the course (as the creator)
-    const enrollment = enrollmentsDao.enrollUserInCourse(currentUser._id, newCourse._id);
+    const enrollment = enrollmentsDao.enrollUserInCourse(
+      currentUser._id,
+      newCourse._id
+    );
 
     if (!enrollment) {
-      return res.status(400).json({ error: "User is already enrolled in this course" });
+      return res
+        .status(400)
+        .json({ error: "User is already enrolled in this course" });
     }
 
     // Respond with the created course
