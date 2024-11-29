@@ -1,40 +1,75 @@
-import db from "../Database/index.js";
+import model from "./model.js";
 
-let { users } = db;
-
-// Create a new user
+/**
+ * Creates a new user in the database.
+ * @param {Object} user - The user object to create.
+ * @returns {Promise} - The created user document.
+ */
 export const createUser = (user) => {
-  const newUser = { ...user, _id: Date.now() }; // Add a unique ID
-  users = [...users, newUser];
-  return newUser;
+  delete user._id; // Prevent `_id` conflicts
+  return model.create(user); // Insert the user
 };
 
-// Retrieve all users
-export const findAllUsers = () => users;
+/**
+ * Retrieves all users from the database.
+ * @returns {Promise} - Array of all user documents.
+ */
+export const findAllUsers = () => model.find();
 
-// Retrieve a user by ID
-export const findUserById = (userId) =>
-  users.find((user) => user._id === userId);
+/**
+ * Retrieves a user by their ID.
+ * @param {String} userId - The ID of the user to find.
+ * @returns {Promise} - The user document matching the ID.
+ */
+export const findUserById = (userId) => model.findById(userId);
 
-// Retrieve a user by username
-export const findUserByUsername = (username) =>
-  users.find((user) => user.username === username);
+/**
+ * Retrieves a user by their username.
+ * @param {String} username - The username of the user to find.
+ * @returns {Promise} - The user document matching the username.
+ */
+export const findUserByUsername = (username) => model.findOne({ username });
 
-// Retrieve a user by credentials
+/**
+ * Retrieves a user by their credentials (username and password).
+ * @param {String} username - The username of the user.
+ * @param {String} password - The password of the user.
+ * @returns {Promise} - The user document matching the credentials.
+ */
 export const findUserByCredentials = (username, password) =>
-  users.find(
-    (user) => user.username === username && user.password === password
-  );
+  model.findOne({ username, password });
 
-// Update a user by ID
-export const updateUser = (userId, user) => {
-  users = users.map((u) => (u._id === Number(userId) ? { ...u, ...user } : u));
-  return users.find((u) => u._id === Number(userId));
-};
+/**
+ * Updates a user by their ID.
+ * @param {String} userId - The ID of the user to update.
+ * @param {Object} user - The user object containing updated fields.
+ * @returns {Promise} - The result of the update operation.
+ */
+export const updateUser = (userId, user) =>
+  model.updateOne({ _id: userId }, { $set: user });
 
-// Delete a user by ID
-export const deleteUser = (userId) => {
-  const userToDelete = users.find((u) => u._id === userId);
-  users = users.filter((u) => u._id !== userId);
-  return userToDelete;
+/**
+ * Deletes a user by their ID.
+ * @param {String} userId - The ID of the user to delete.
+ * @returns {Promise} - The result of the delete operation.
+ */
+export const deleteUser = (userId) => model.deleteOne({ _id: userId });
+
+/**
+ * Finds users by their role.
+ * @param {String} role - The role to filter users by.
+ * @returns {Promise} - The filtered users.
+ */
+export const findUsersByRole = (role) => model.find({ role });
+
+/**
+ * Finds users by partial match of their first or last name.
+ * @param {String} partialName - The partial name to match.
+ * @returns {Promise} - The filtered users.
+ */
+export const findUsersByPartialName = (partialName) => {
+  const regex = new RegExp(partialName, "i"); // 'i' makes it case-insensitive
+  return model.find({
+    $or: [{ firstName: { $regex: regex } }, { lastName: { $regex: regex } }],
+  });
 };

@@ -1,4 +1,5 @@
 import express from "express";
+import mongoose from "mongoose"; // Import mongoose
 import cors from "cors";
 import session from "express-session";
 import "dotenv/config";
@@ -13,6 +14,18 @@ import AssignmentRoutes from "./Kanbas/Assignments/routes.js";
 import EnrollmentRoutes from "./Kanbas/Enrollments/routes.js";
 
 const app = express();
+
+// MongoDB Connection
+const CONNECTION_STRING =
+  process.env.MONGO_CONNECTION_STRING || "mongodb://127.0.0.1:27017/kanbas";
+
+mongoose
+  .connect(CONNECTION_STRING, {
+    useNewUrlParser: true,
+    useUnifiedTopology: true,
+  })
+  .then(() => console.log("Connected to MongoDB successfully!"))
+  .catch((err) => console.error("Error connecting to MongoDB:", err));
 
 // Configure allowed origins (frontend and backend)
 const allowedOrigins = [

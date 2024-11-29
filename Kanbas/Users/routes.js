@@ -2,137 +2,217 @@ import * as dao from "./dao.js";
 import * as courseDao from "../Courses/dao.js";
 import * as enrollmentsDao from "../Enrollments/dao.js";
 
-let currentUser = null; // Keeps track of the logged-in user
-
 export default function UserRoutes(app) {
-  const createUser = (req, res) => {
-    const newUser = dao.createUser(req.body);
-    res.status(201).json(newUser);
+  /**
+   * Create a new user.
+   */
+  const createUser = async (req, res) => {
+    try {
+      const newUser = await dao.createUser(req.body); // Call DAO to create user
+      res.status(201).json(newUser); // Respond with the newly created user
+    } catch (error) {
+      console.error("Error creating user:", error);
+      res.status(500).json({ error: "Internal server error" }); // Handle errors
+    }
   };
 
-  const deleteUser = (req, res) => {
-    const userId = Number(req.params.userId);
-    const deletedUser = dao.deleteUser(userId);
-    if (!deletedUser) {
-      return res.status(404).json({ error: "User not found" });
-    }
-    res.status(200).json(deletedUser);
-  };
+  /**
+   * Delete a user by ID.
+   */
+  const deleteUser = async (req, res) => {
+    try {
+      const userId = req.params.userId;
 
-  const findAllUsers = (req, res) => {
-    const users = dao.findAllUsers();
-    res.status(200).json(users);
-  };
-
-  const findUserById = (req, res) => {
-    const userId = Number(req.params.userId);
-    const user = dao.findUserById(userId);
-    if (!user) {
-      return res.status(404).json({ error: "User not found" });
-    }
-    res.status(200).json(user);
-  };
-
-  const updateUser = (req, res) => {
-    const userId = Number(req.params.userId);
-    const userUpdates = req.body;
-
-    // Update the user
-    const updatedUser = dao.updateUser(userId, userUpdates);
-
-    if (!updatedUser) {
-      return res.status(404).json({ error: "User not found" });
-    }
-
-    // Update currentUser if it matches the updated user
-    if (currentUser?._id === userId) {
-      currentUser = updatedUser;
-    }
-
-    res.status(200).json(updatedUser);
-  };
-
-  const signup = (req, res) => {
-    const user = dao.findUserByUsername(req.body.username);
-
-    if (user) {
-      res.status(400).json({ message: "Username already in use" });
-      return;
-    }
-
-    // Destroy the current session (if any) before proceeding
-    req.session.destroy((err) => {
-      if (err) {
-        console.error("Error clearing session during signup:", err);
+      // Validate ObjectId
+      if (!mongoose.isValidObjectId(userId)) {
+        return res.status(400).json({ error: "Invalid user ID" });
       }
-    });
 
-    // Create the new user
-    const newUser = dao.createUser(req.body);
+      const result = await dao.deleteUser(userId);
 
-    // Do not set the session; redirect to Sign In for login
-    res.status(201).json({ message: "Signup successful. Please log in." });
-  };
+      if (result.deletedCount === 0) {
+        return res.status(404).json({ error: "User not found" });
+      }
 
-  const signin = (req, res) => {
-    const { username, password } = req.body;
-    const user = dao.findUserByCredentials(username, password);
-
-    if (!user) {
-      return res.status(401).json({ error: "Invalid credentials" });
+      res.status(200).json({ message: "User deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting user:", error);
+      res.status(500).json({ error: "Internal server error" });
     }
-
-    // Set currentUser for session
-    currentUser = user;
-    req.session.currentUser = user; // Store in session for persistence
-    res.status(200).json(user);
   };
 
-  const signout = (req, res) => {
-    currentUser = null;
-    res.status(200).json({ message: "Sign out successful" });
-  };
+  /**
+   * Retrieve all users.
+   */
+  const findAllUsers = async (req, res) => {
+    try {
+      const { role, name } = req.query;
 
-  const profile = (req, res) => {
-    console.log("Incoming request to /api/users/profile");
-    console.log("Session User:", req.session.currentUser);
+      if (role) {
+        const users = await dao.findUsersByRole(role);
+        res.json(users);
+        return;
+      }
 
-    if (!req.session.currentUser) {
-      console.error("No user found in session");
-      return res.status(401).json({ error: "Not signed in" });
+      if (name) {
+        const users = await dao.findUsersByPartialName(name);
+        res.json(users);
+        return;
+      }
+
+      const users = await dao.findAllUsers();
+      res.json(users);
+    } catch (error) {
+      console.error("Error fetching users:", error);
+      res.status(500).json({ error: "Internal server error" });
     }
-
-    res.status(200).json(req.session.currentUser);
   };
 
-  // New createCourse route
-  const createCourse = (req, res) => {
-    const currentUser = req.session.currentUser;
-    if (!currentUser) {
-      return res.status(401).json({ error: "Unauthorized" });
+  /**
+   * Retrieve a user by ID.
+   */
+  const findUserById = async (req, res) => {
+    try {
+      const userId = req.params.userId;
+      const user = await dao.findUserById(userId);
+
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      res.status(200).json(user);
+    } catch (error) {
+      console.error("Error fetching user by ID:", error.message);
+      res.status(500).json({ error: "Internal server error" });
     }
-
-    // Create the course
-    const newCourse = courseDao.createCourse(req.body);
-
-    // Enroll the current user in the course (as the creator)
-    const enrollment = enrollmentsDao.enrollUserInCourse(
-      currentUser._id,
-      newCourse._id
-    );
-
-    if (!enrollment) {
-      return res
-        .status(400)
-        .json({ error: "User is already enrolled in this course" });
-    }
-
-    // Respond with the created course
-    res.status(201).json(newCourse);
   };
 
-  app.get("/api/users/profile", profile);
+  /**
+   * Update a user by ID.
+   */
+  const updateUser = async (req, res) => {
+    try {
+      const { userId } = req.params;
+      const userUpdates = req.body;
 
+      // Perform the update
+      const updateResult = await dao.updateUser(userId, userUpdates);
+
+      if (updateResult.matchedCount === 0) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      // Update session if the current user is being updated
+      const currentUser = req.session["currentUser"];
+      if (currentUser && currentUser._id === userId) {
+        req.session["currentUser"] = { ...currentUser, ...userUpdates };
+      }
+
+      res.status(200).json({ message: "User updated successfully" });
+    } catch (error) {
+      console.error("Error updating user:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  };
+
+  /**
+   * Sign up a new user.
+   */
+  const signup = async (req, res) => {
+    try {
+      const user = await dao.findUserByUsername(req.body.username);
+
+      if (user) {
+        return res.status(400).json({ message: "Username already in use" });
+      }
+
+      const newUser = await dao.createUser(req.body);
+      req.session.currentUser = newUser;
+      res.status(201).json(newUser);
+    } catch (error) {
+      console.error("Error during signup:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  };
+
+  /**
+   * Sign in an existing user.
+   */
+  const signin = async (req, res) => {
+    try {
+      const { username, password } = req.body;
+      const user = await dao.findUserByCredentials(username, password);
+
+      if (!user) {
+        return res.status(401).json({ error: "Invalid credentials" });
+      }
+
+      req.session.currentUser = user;
+      res.status(200).json(user);
+    } catch (error) {
+      console.error("Error during signin:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  };
+
+  /**
+   * Sign out the current user.
+   */
+  const signout = async (req, res) => {
+    try {
+      req.session.destroy((err) => {
+        if (err) {
+          console.error("Error during signout:", err);
+          return res.status(500).json({ error: "Internal server error" });
+        }
+
+        res.status(200).json({ message: "Sign out successful" });
+      });
+    } catch (error) {
+      console.error("Error during signout:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  };
+
+  /**
+   * Retrieve the profile of the current user.
+   */
+  const profile = async (req, res) => {
+    try {
+      const currentUser = req.session.currentUser;
+
+      if (!currentUser) {
+        return res.status(401).json({ error: "Not signed in" });
+      }
+
+      res.status(200).json(currentUser);
+    } catch (error) {
+      console.error("Error fetching profile:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  };
+
+  /**
+   * Create a new course and enroll the creator.
+   */
+  const createCourse = async (req, res) => {
+    try {
+      const currentUser = req.session.currentUser;
+
+      if (!currentUser) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const newCourse = await courseDao.createCourse(req.body);
+      await enrollmentsDao.enrollUserInCourse(currentUser._id, newCourse._id);
+      res.status(201).json(newCourse);
+    } catch (error) {
+      console.error("Error creating course:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  };
+
+  // Define routes
   app.post("/api/users", createUser);
   app.get("/api/users", findAllUsers);
   app.get("/api/users/:userId", findUserById);
