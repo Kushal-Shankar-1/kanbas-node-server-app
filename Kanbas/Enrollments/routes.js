@@ -79,4 +79,31 @@ export default function EnrollmentRoutes(app) {
       return res.status(500).json([]);
     }
   });
+
+  /**
+   * GET /api/courses/:cid/users
+   * Retrieves all users enrolled in the specified course.
+   */
+
+  const findUsersForCourse = async (req, res) => {
+    const { cid } = req.params; // Course ID from URL
+    try {
+      const users = await enrollmentsDao.findUsersForCourse(cid);
+
+      if (!users || users.length === 0) {
+        return res
+          .status(404)
+          .json({ error: "No users found for this course." });
+      }
+
+      return res.status(200).json(users);
+    } catch (error) {
+      console.error("Error fetching users for course:", error);
+      return res
+        .status(500)
+        .json({ error: "Failed to fetch users for course." });
+    }
+  };
+
+  app.get("/api/courses/:cid/users", findUsersForCourse);
 }

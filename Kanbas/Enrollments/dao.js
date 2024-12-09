@@ -1,4 +1,5 @@
 import Enrollment from "./model.js";
+import User from "../Users/model.js";
 
 /**
  * Enrolls a user in a course by adding an enrollment record.
@@ -60,3 +61,26 @@ export async function findAllEnrollments() {
   const enrollments = await Enrollment.find({});
   return enrollments;
 }
+
+/**
+ * Retrieves all users enrolled in a specific course.
+ * @param {string} courseId - The ID of the course.
+ * @returns {Promise<Array>} - A promise that resolves to an array of user objects.
+ */
+export const findUsersForCourse = async (courseId) => {
+  try {
+    // Find enrollments for the course
+    const enrollments = await Enrollment.find({ course: courseId });
+
+    // Extract user IDs from enrollments
+    const userIds = enrollments.map((enrollment) => enrollment.user);
+
+    // Fetch user details for the extracted IDs
+    const users = await User.find({ _id: { $in: userIds } });
+
+    return users;
+  } catch (error) {
+    console.error("Error retrieving users for course:", error);
+    throw error;
+  }
+};
