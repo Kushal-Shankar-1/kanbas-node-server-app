@@ -30,8 +30,31 @@ export const findUserByUsername = async (username) => {
 
 // Retrieve a user by credentials (username/password)
 export const findUserByCredentials = async (username, password) => {
-  const user = await User.findOne({ username, password });
-  return user;
+  console.log(
+    `Searching for user with username: "${username}" and password: "${password}"`
+  );
+  try {
+    const query = {
+      username: new RegExp(`^${username}$`, "i"), // Case-insensitive match
+      password: new RegExp(`^${password}$`, "i"),
+    };
+    console.log("Raw query object:", query);
+
+    // Use User instead of model
+    const user = await User.findOne(query);
+    console.log("Raw Query Result:", user);
+
+    if (!user) {
+      console.log("No user found with provided credentials.");
+    } else {
+      console.log("User found:", user);
+    }
+
+    return user;
+  } catch (error) {
+    console.error("Error querying database:", error);
+    throw error;
+  }
 };
 
 // Update a user by ID
@@ -46,4 +69,17 @@ export const updateUser = async (userId, userUpdates) => {
 export const deleteUser = async (userId) => {
   const deletedUser = await User.findByIdAndDelete(userId);
   return deletedUser;
+};
+
+// Finds users by their role.
+export const findUsersByRole = (role) => {
+  return User.find({ role: role });
+};
+
+// Finds users by partial match of their first or last name.
+export const findUsersByPartialName = (partialName) => {
+  const regex = new RegExp(partialName, "i"); // case-insensitive
+  return User.find({
+    $or: [{ firstName: { $regex: regex } }, { lastName: { $regex: regex } }],
+  });
 };
