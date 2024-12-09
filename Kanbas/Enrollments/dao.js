@@ -1,21 +1,17 @@
-// src/Kanbas/Enrollments/dao.js
-
-import Database from "../Database/index.js";
+import Enrollment from "./model.js";
 
 /**
  * Enrolls a user in a course by adding an enrollment record.
  * @param {string} userId - The ID of the user.
  * @param {string} courseId - The ID of the course.
- * @returns {Object} The newly created enrollment.
+ * @returns {Object|null} The newly created enrollment or null if already enrolled.
  */
-export function enrollUserInCourse(userId, courseId) {
-  const { enrollments } = Database;
-
-  // Check if the user is already enrolled to prevent duplicates
-  const isAlreadyEnrolled = enrollments.some(
-    (enrollment) => enrollment.user === userId && enrollment.course === courseId
-  );
-
+export async function enrollUserInCourse(userId, courseId) {
+  // Check if user is already enrolled
+  const isAlreadyEnrolled = await Enrollment.findOne({
+    user: userId,
+    course: courseId,
+  });
   if (isAlreadyEnrolled) {
     return null; // User is already enrolled
   }
@@ -25,8 +21,8 @@ export function enrollUserInCourse(userId, courseId) {
     user: userId,
     course: courseId,
   };
-  enrollments.push(newEnrollment);
-  return newEnrollment;
+  const created = await Enrollment.create(newEnrollment);
+  return created.toObject();
 }
 
 /**
@@ -35,16 +31,15 @@ export function enrollUserInCourse(userId, courseId) {
  * @param {string} courseId - The ID of the course.
  * @returns {Object|null} The removed enrollment or null if not found.
  */
-export function unenrollUserFromCourse(userId, courseId) {
-  const { enrollments } = Database;
-  const enrollmentIndex = enrollments.findIndex(
-    (enrollment) => enrollment.user === userId && enrollment.course === courseId
-  );
+export async function unenrollUserFromCourse(userId, courseId) {
+  const enrollment = await Enrollment.findOne({
+    user: userId,
+    course: courseId,
+  });
+  if (!enrollment) return null;
 
-  if (enrollmentIndex === -1) return null;
-
-  const [removedEnrollment] = enrollments.splice(enrollmentIndex, 1);
-  return removedEnrollment;
+  await Enrollment.findByIdAndDelete(enrollment._id);
+  return enrollment.toObject();
 }
 
 /**
@@ -52,12 +47,16 @@ export function unenrollUserFromCourse(userId, courseId) {
  * @param {string} userId - The ID of the user.
  * @returns {Array} An array of enrollments for the specified user.
  */
-export function findEnrollmentsForUser(userId) {
-  const { enrollments } = Database;
-  return enrollments.filter((enrollment) => enrollment.user === userId);
+export async function findEnrollmentsForUser(userId) {
+  const enrollments = await Enrollment.find({ user: userId });
+  return enrollments;
 }
 
-export function findAllEnrollments() {
-  const { enrollments } = Database;
+/**
+ * Retrieves all enrollments.
+ * @returns {Array} An array of all enrollments.
+ */
+export async function findAllEnrollments() {
+  const enrollments = await Enrollment.find({});
   return enrollments;
 }

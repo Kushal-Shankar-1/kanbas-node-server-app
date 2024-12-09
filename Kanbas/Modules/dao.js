@@ -1,13 +1,13 @@
-import Database from "../Database/index.js";
+import Module from "./model.js"; // Import the Module model
 
 /**
  * Retrieves modules for a specific course.
  * @param {string} courseId - The ID of the course.
  * @returns {Array} An array of modules for the specified course.
  */
-export function findModulesForCourse(courseId) {
-  const { modules } = Database;
-  return modules.filter((module) => module.course === courseId);
+export async function findModulesForCourse(courseId) {
+  const modules = await Module.find({ course: courseId });
+  return modules;
 }
 
 /**
@@ -15,10 +15,12 @@ export function findModulesForCourse(courseId) {
  * @param {Object} module - The module object to create.
  * @returns {Object} The newly created module with a unique ID.
  */
-export function createModule(module) {
-  const newModule = { ...module, _id: Date.now().toString() };
-  Database.modules = [...Database.modules, newModule];
-  return newModule;
+export async function createModule(module) {
+  if (!module._id) {
+    module._id = Date.now().toString();
+  }
+  const newModule = await Module.create(module);
+  return newModule.toObject();
 }
 
 /**
@@ -26,15 +28,13 @@ export function createModule(module) {
  * @param {string} moduleId - The ID of the module to delete.
  * @returns {boolean} True if the module was found and deleted, false otherwise.
  */
-export function deleteModule(moduleId) {
-  const { modules } = Database;
-  const moduleExists = modules.some((module) => module._id === moduleId);
-
+export async function deleteModule(moduleId) {
+  const moduleExists = await Module.findById(moduleId);
   if (!moduleExists) {
     return false; // Module not found
   }
 
-  Database.modules = modules.filter((module) => module._id !== moduleId);
+  await Module.findByIdAndDelete(moduleId);
   return true;
 }
 
@@ -44,10 +44,11 @@ export function deleteModule(moduleId) {
  * @param {Object} moduleUpdates - The updates to apply to the module.
  * @returns {Object|null} The updated module or null if not found.
  */
-export function updateModule(moduleId, moduleUpdates) {
-  const { modules } = Database;
-  const module = modules.find((module) => module._id === moduleId);
-  if (!module) return null;
-  Object.assign(module, moduleUpdates); // Apply updates
-  return module;
+export async function updateModule(moduleId, moduleUpdates) {
+  const updatedModule = await Module.findByIdAndUpdate(
+    moduleId,
+    moduleUpdates,
+    { new: true }
+  );
+  return updatedModule;
 }

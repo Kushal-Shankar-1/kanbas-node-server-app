@@ -9,27 +9,45 @@ export default function ModuleRoutes(app) {
    * DELETE /api/modules/:moduleId
    * Deletes a module by its ID.
    */
-  app.delete("/api/modules/:moduleId", (req, res) => {
+  app.delete("/api/modules/:moduleId", async (req, res) => {
     const { moduleId } = req.params;
 
-    const status = modulesDao.deleteModule(moduleId);
-    if (!status) {
-      return res.status(404).json({ error: "Module not found" });
+    try {
+      const status = await modulesDao.deleteModule(moduleId);
+      if (!status) {
+        return res.status(404).json({ error: "Module not found" });
+      }
+      res.sendStatus(204); // No Content
+    } catch (error) {
+      console.error("Error deleting module:", error);
+      res.status(500).json({ error: "Failed to delete module" });
     }
-
-    res.sendStatus(204); // No Content
   });
 
   /**
+   * PUT /api/modules/:moduleId
    * Updates a module by its ID.
    */
-  app.put("/api/modules/:moduleId", (req, res) => {
+  app.put("/api/modules/:moduleId", async (req, res) => {
     const { moduleId } = req.params;
     const moduleUpdates = req.body;
-    const updatedModule = modulesDao.updateModule(moduleId, moduleUpdates);
-    if (!updatedModule) {
-      return res.status(404).json({ error: "Module not found" });
+
+    try {
+      const updatedModule = await modulesDao.updateModule(
+        moduleId,
+        moduleUpdates
+      );
+      if (!updatedModule) {
+        return res.status(404).json({ error: "Module not found" });
+      }
+      // Previously, this returned a 204 No Content.
+      // If you want to confirm the update, respond with the updated module.
+      // If you prefer the previous behavior, you can keep it.
+      // Here, let's return the updatedModule object for clarity.
+      res.status(200).json(updatedModule);
+    } catch (error) {
+      console.error("Error updating module:", error);
+      res.status(500).json({ error: "Failed to update module" });
     }
-    res.status(204).send(); // No Content
   });
 }

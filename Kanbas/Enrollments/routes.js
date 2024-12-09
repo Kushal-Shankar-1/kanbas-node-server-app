@@ -9,19 +9,22 @@ export default function EnrollmentRoutes(app) {
    * POST /api/enrollments
    * Enroll a user in a course.
    */
-  app.post("/api/enrollments", (req, res) => {
+  app.post("/api/enrollments", async (req, res) => {
     const { userId, courseId } = req.body;
     try {
-      const newEnrollment = enrollmentsDao.enrollUserInCourse(userId, courseId);
+      const newEnrollment = await enrollmentsDao.enrollUserInCourse(
+        userId,
+        courseId
+      );
       if (!newEnrollment) {
         return res
           .status(400)
           .json({ error: "User is already enrolled in this course" });
       }
-      res.status(201).json(newEnrollment);
+      return res.status(201).json(newEnrollment);
     } catch (error) {
       console.error("Error enrolling user:", error);
-      res.status(500).json({ error: "Failed to enroll user" });
+      return res.status(500).json({ error: "Failed to enroll user" });
     }
   });
 
@@ -29,20 +32,20 @@ export default function EnrollmentRoutes(app) {
    * DELETE /api/enrollments
    * Unenroll a user from a course.
    */
-  app.delete("/api/enrollments", (req, res) => {
+  app.delete("/api/enrollments", async (req, res) => {
     const { userId, courseId } = req.body;
     try {
-      const removedEnrollment = enrollmentsDao.unenrollUserFromCourse(
+      const removedEnrollment = await enrollmentsDao.unenrollUserFromCourse(
         userId,
         courseId
       );
       if (!removedEnrollment) {
         return res.status(404).json({ error: "Enrollment not found" });
       }
-      res.status(200).json(removedEnrollment);
+      return res.status(200).json(removedEnrollment);
     } catch (error) {
       console.error("Error unenrolling user:", error);
-      res.status(500).json({ error: "Failed to unenroll user" });
+      return res.status(500).json({ error: "Failed to unenroll user" });
     }
   });
 
@@ -50,14 +53,15 @@ export default function EnrollmentRoutes(app) {
    * GET /api/users/:userId/enrollments
    * Retrieves enrollments for a specific user.
    */
-  app.get("/api/users/:userId/enrollments", (req, res) => {
+  app.get("/api/users/:userId/enrollments", async (req, res) => {
     const { userId } = req.params;
     try {
-      const enrollments = enrollmentsDao.findEnrollmentsForUser(userId);
-      res.status(200).json(enrollments);
+      const enrollments = await enrollmentsDao.findEnrollmentsForUser(userId);
+      if (!enrollments) return res.json([]); // Return empty array if none
+      return res.status(200).json(enrollments);
     } catch (error) {
       console.error("Error fetching enrollments:", error);
-      res.status(500).json({ error: "Failed to fetch enrollments" });
+      return res.status(500).json([]);
     }
   });
 
@@ -65,14 +69,14 @@ export default function EnrollmentRoutes(app) {
    * GET /api/enrollments
    * Retrieves all enrollments.
    */
-  app.get("/api/enrollments", (req, res) => {
+  app.get("/api/enrollments", async (req, res) => {
     try {
-      const enrollments = enrollmentsDao.findAllEnrollments();
-      res.json(enrollments);
+      const enrollments = await enrollmentsDao.findAllEnrollments();
+      if (!enrollments) return res.json([]);
+      return res.json(enrollments);
     } catch (error) {
       console.error("Error fetching enrollments:", error);
-      res.status(500).json({ error: "Failed to fetch enrollments" });
+      return res.status(500).json([]);
     }
   });
-  
 }

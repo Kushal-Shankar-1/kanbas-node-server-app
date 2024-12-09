@@ -4,6 +4,7 @@ import session from "express-session";
 import "dotenv/config";
 import bodyParser from "body-parser";
 
+import connectDB from "./db.js"; // Import the connectDB function
 import Hello from "./Hello.js";
 import Lab5 from "./Lab5/index.js";
 import UserRoutes from "./Kanbas/Users/routes.js";
@@ -23,17 +24,17 @@ const allowedOrigins = [
 // Configure CORS
 app.use(
   cors({
-    credentials: true, // Allow cookies/auth headers
+    credentials: true,
     origin: (origin, callback) => {
       if (!origin || allowedOrigins.includes(origin)) {
-        callback(null, true); // Allow the request
+        callback(null, true);
       } else {
-        console.error(`Blocked by CORS: ${origin}`); // Log blocked origins
-        callback(new Error("Not allowed by CORS")); // Block other origins
+        console.error(`Blocked by CORS: ${origin}`);
+        callback(new Error("Not allowed by CORS"));
       }
     },
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"], // Allowed methods
-    allowedHeaders: ["Content-Type", "Authorization"], // Minimal headers
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
   })
 );
 
@@ -46,19 +47,19 @@ app.use(bodyParser.json());
 // Unified session configuration
 app.use(
   session({
-    secret: process.env.SESSION_SECRET || "super secret session phrase", // Secret for signing session ID
-    resave: false, // Avoid unnecessary session saves
-    saveUninitialized: false, // Only create session when needed
+    secret: process.env.SESSION_SECRET || "super secret session phrase",
+    resave: false,
+    saveUninitialized: false,
     cookie: {
-      secure: process.env.NODE_ENV === "production", // HTTPS-only cookies in production
-      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax", // Cross-origin cookies in production
+      secure: process.env.NODE_ENV === "production",
+      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
       domain:
         process.env.NODE_ENV === "production"
           ? process.env.NODE_SERVER_DOMAIN ||
-            "kanbas-node-server-app-emvj.onrender.com" // Backend domain for production
-          : undefined, // No domain for local development
+            "kanbas-node-server-app-emvj.onrender.com"
+          : undefined,
     },
-    proxy: process.env.NODE_ENV === "production", // Trust reverse proxies in production
+    proxy: process.env.NODE_ENV === "production",
   })
 );
 
@@ -71,8 +72,15 @@ ModuleRoutes(app);
 AssignmentRoutes(app);
 EnrollmentRoutes(app);
 
-// Start the server
 const PORT = process.env.PORT || 4000;
-app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
-});
+
+// Connect to the database FIRST, then start the server
+connectDB()
+  .then(() => {
+    app.listen(PORT, () => {
+      console.log(`Server is running on port ${PORT}`);
+    });
+  })
+  .catch((err) => {
+    console.error("Failed to connect to MongoDB", err);
+  });
