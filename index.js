@@ -12,6 +12,8 @@ import CourseRoutes from "./Kanbas/Courses/routes.js";
 import ModuleRoutes from "./Kanbas/Modules/routes.js";
 import AssignmentRoutes from "./Kanbas/Assignments/routes.js";
 import EnrollmentRoutes from "./Kanbas/Enrollments/routes.js";
+import QuizRoutes from "./Kanbas/quizzes/routes.js";
+import QuestionRoutes from "./Kanbas/questions/routes.js";
 
 const app = express();
 
@@ -71,6 +73,8 @@ CourseRoutes(app);
 ModuleRoutes(app);
 AssignmentRoutes(app);
 EnrollmentRoutes(app);
+QuizRoutes(app);
+QuestionRoutes(app);
 
 const PORT = process.env.PORT || 4000;
 
